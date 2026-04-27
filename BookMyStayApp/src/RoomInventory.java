@@ -1,70 +1,87 @@
-import java.util.HashMap;
-import java.util.Map;
+import java.io.*;
+import java.util.*;
 
-/**
- * ==========================================================
- * CLASS – RoomInventory
- * ==========================================================
- *
- * Use Case 3: Centralized Room Inventory Management
- *
- * Description:
- * This class acts as the single source of truth
- * for room availability in the hotel.
- *
- * Room pricing and characteristics are obtained
- * from Room objects, not duplicated here.
- *
- * This avoids multiple sources of truth and
- * keeps responsibilities clearly separated.
- *
- * @version 3.1
- */
+// Inventory Model (Serializable)
+class Inventory implements Serializable {
+    private static final long serialVersionUID = 1L;
 
-public class RoomInventory {
+    private Map<String, Integer> rooms;
 
-    /**
-     * Stores available room count for each room type.
-     * Key -> Room type name
-     * Value -> Available room count
-     */
-    private HashMap<String, Integer> roomAvailability;
-
-    /**
-     * Constructor initializes the inventory
-     * with default availability values.
-     */
-    public RoomInventory() {
-        roomAvailability = new HashMap<>();
-        initializeInventory();
+    public Inventory() {
+        rooms = new HashMap<>();
+        rooms.put("Single", 5);
+        rooms.put("Double", 3);
+        rooms.put("Suite", 2);
     }
 
-    /**
-     * Initializes room availability data.
-     * This method centralizes inventory setup
-     * instead of using scattered variables.
-     */
-    private void initializeInventory() {
-
-        roomAvailability.put("Single", 5);
-        roomAvailability.put("Double", 3);
-        roomAvailability.put("Suite", 2);
-
+    public Map<String, Integer> getRooms() {
+        return rooms;
     }
 
-    /**
-     * Returns the current availability map.
-     *
-     * @return map of room type to available count
-     */
-    public Map<String, Integer> getRoomAvailability() {
-        return roomAvailability;
+    public void setRooms(Map<String, Integer> rooms) {
+        this.rooms = rooms;
     }
 
+    public void display() {
+        System.out.println("\nCurrent Inventory:");
+        for (String type : rooms.keySet()) {
+            System.out.println(type + ": " + rooms.get(type));
+        }
+    }
+}
+
+// Persistence Service
+class PersistenceService {
+
+    private static final String FILE_NAME = "inventory.dat";
+
+    // SAVE (Serialization)
+    public static void saveInventory(Inventory inventory) {
+        try (ObjectOutputStream oos =
+                     new ObjectOutputStream(new FileOutputStream(FILE_NAME))) {
+
+            oos.writeObject(inventory);
+            System.out.println("Inventory saved successfully.");
+
+        } catch (IOException e) {
+            System.out.println("Error saving inventory: " + e.getMessage());
+        }
+    }
+
+    // LOAD (Deserialization)
+    public static Inventory loadInventory() {
+        try (ObjectInputStream ois =
+                     new ObjectInputStream(new FileInputStream(FILE_NAME))) {
+
+            return (Inventory) ois.readObject();
+
+        } catch (FileNotFoundException e) {
+            System.out.println("No valid inventory data found. Starting fresh.");
+        } catch (IOException | ClassNotFoundException e) {
+            System.out.println("Corrupted data. Starting with new inventory.");
+        }
+
+        return new Inventory(); // fallback
+    }
+}
+
+// MAIN CLASS
+public class UseCase12DataPersistenceRecovery {
+
     /**
-     * Updates availability for a specific room type.
+     * Application entry point.
      */
-    public void updateAvailability(String roomType, int count) {
-        roomAvailability.put(roomType, count);
+    public static void main(String[] args) {
+
+        System.out.println("System Recovery");
+
+        // Load inventory from file
+        Inventory inventory = PersistenceService.loadInventory();
+
+        // Display current state
+        inventory.display();
+
+        // Simulate system shutdown → save state
+        PersistenceService.saveInventory(inventory);
     }
 }
